@@ -110,7 +110,7 @@ void editar(int mat) {
     for (i = 0; i < n; i++) {
         if (v[i].mat == mat) {
             float media;
-            printf("Informe a nota nota:\n");
+            printf("Informe a nova nota:\n");
             scanf("%f", &media);
             v[i].media = media;
             printf("media: %f", media);
