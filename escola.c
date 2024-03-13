@@ -9,7 +9,7 @@ typedef struct {
 void menu() {
     printf("============================\n");
     printf("Escolha uma opcao:\n");
-    printf("1 - cadastar aluno\n");
+    printf("1 - cadastrar aluno\n");
     printf("2 - listar alunos\n");
     printf("3 - buscar aluno\n");
     printf("4 - quantidade de alunos\n");
@@ -32,9 +32,9 @@ void cadastrar() {
     fclose(file);
 }
 
-void buscar (int mat) {
+void buscar(int mat) {
     FILE* file = fopen("aluno.b", "rb");
-    if (file == NULL){
+    if (file == NULL) {
         printf("Erro ao abrir o arquivo.\n");
         return;
     }
@@ -42,7 +42,7 @@ void buscar (int mat) {
     int entrou = 0;
     while (fread(&a, sizeof(aluno), 1, file)) {
         if (a.mat == mat) {
-            printf("%d: %s %f\n", a.mat, a.nome, a.media);
+            printf("%d: %s %.2f\n", a.mat, a.nome, a.media);
             entrou = 1;
         }
     }
@@ -63,23 +63,29 @@ void listar() {
         printf("%d: %s %.2f\n", a.mat, a.nome, a.media);
     }
     fclose(file);
-} int tamanho() {
+}
+
+int tamanho() {
     FILE* file = fopen("aluno.b", "rb");
     if (file == NULL) {
         printf("Arquivo não encontrado.\n");
+        return 0;
     }
     aluno a;
     int cont = 0;
-    while (fread(&a, sizeof(aluno), 1, file)){
+    while (fread(&a, sizeof(aluno), 1, file)) {
         cont++;
     }
-        fclose(file);
-        return cont;
-    
+    fclose(file);
+    return cont;
 }
 
 void excluir(int mat) {
     int n = tamanho();
+    if (n == 0) {
+        printf("Nenhum aluno cadastrado.\n");
+        return;
+    }
     aluno v[n];
     FILE* file = fopen("aluno.b", "rb");
     int i = 0;
@@ -87,13 +93,13 @@ void excluir(int mat) {
         i++;
     }
     fclose(file);
+
     file = fopen("aluno.b", "wb");
     for (i = 0; i < n; i++) {
         if (v[i].mat != mat) {
             fwrite(&v[i], sizeof(aluno), 1, file);
         }
     }
-
     fclose(file);
 }
 
@@ -113,9 +119,7 @@ void editar(int mat) {
             printf("Informe a nova nota:\n");
             scanf("%f", &media);
             v[i].media = media;
-            printf("media: %f", media);
         }
-        printf("media: %f", v[i].media);
         fwrite(&v[i], sizeof(aluno), 1, file);
     }
     fclose(file);
