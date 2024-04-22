@@ -2,15 +2,15 @@
 #include <stdlib.h>
 #include <locale.h>
 #include <string.h>
-
-#define login 100
+#include "lojadejogos.h"
 #define mail 80
 
-typedef struct {
+typedef struct Jogo {
     int id;
     char nome[50];
     float valor;
-} jogo;
+    struct Jogo* proximo;
+} Jogo;
 
 typedef struct {
     char email[mail];
@@ -21,13 +21,12 @@ void menu();
 void realizarLogin(Usuario usuarios[], int *user);
 void cadastrarUsuario(Usuario usuarios[], int *user);
 void menuJogo();
-void cadastrarJogo();
-void buscarJogo(int id);
-void listarJogos();
-void excluirJogo(int id);
-void editarJogo(int id);
-int tamanhoJogos();
-void aplicarPromocao();
+void cadastrarJogo(Jogo **lista);
+void buscarJogo(Jogo *lista, int id);
+void listarJogos(Jogo *lista);
+void excluirJogo(Jogo **lista, int id);
+void editarJogo(Jogo *lista, int id);
+void aplicarPromocao(Jogo *lista);
 void salvarUsuarios(Usuario usuarios[], int user);
 void carregarUsuarios(Usuario usuarios[], int *user);
 int verificarEmail(char email[], Usuario usuarios[], int user);
@@ -35,7 +34,7 @@ void exibirMensagemBoasVindas();
 
 int main() {
     setlocale (LC_ALL, "Portuguese");
-    Usuario usuarios[login];
+    Usuario usuarios[100];
     int user = 0;
     int op;
 
@@ -43,6 +42,8 @@ int main() {
     system("pause");
     system("cls");
     carregarUsuarios(usuarios, &user);
+
+    Jogo *lista = NULL;
 
     do {
         menu();
@@ -113,7 +114,6 @@ void cadastrarUsuario(Usuario usuarios[], int *user) {
     printf("E-mail (deve conter '@'): ");
     scanf("%s", email);
 
-    
     if (!strchr(email, '@')) {
         printf("Formato de e-mail inválido. O e-mail deve conter '@'.\n");
         system("pause");
@@ -143,6 +143,8 @@ void cadastrarUsuario(Usuario usuarios[], int *user) {
 void menuJogo() {
     int op;
 
+    Jogo *lista = NULL;
+
     do {
         printf("============================\n");
         printf("Escolha uma opção:\n");
@@ -159,23 +161,23 @@ void menuJogo() {
 
         switch(op) {
             case 1:
-                cadastrarJogo();
+                cadastrarJogo(&lista);
                 break;
             case 2:
-                listarJogos();
+                listarJogos(lista);
                 break;
             case 3: {
                 int id;
                 printf("Informe o id:\n");
                 scanf("%d", &id);
-                buscarJogo(id);
+                buscarJogo(lista, id);
                 break;
             }
             case 4: {
                 int id;
                 printf("Informe o id do jogo para a exclusão:\n");
                 scanf("%d", &id);
-                excluirJogo(id);
+                excluirJogo(&lista, id);
                 system("pause");
                 system("cls");
                 break;
@@ -184,13 +186,13 @@ void menuJogo() {
                 int id;
                 printf("Informe o id do jogo para a edição:\n");
                 scanf("%d", &id);
-                editarJogo(id);
+                editarJogo(lista, id);
                 system("pause");
                 system("cls");
                 break;
             }
             case 6:
-                aplicarPromocao();
+                aplicarPromocao(lista);
                 system("pause");
                 system("cls");
                 break;
@@ -204,181 +206,91 @@ void menuJogo() {
     } while (1);
 }
 
-void cadastrarJogo() {
-    FILE* file = fopen("jogo.b", "ab");
-    if (file == NULL) {
-        printf("Erro ao abrir o arquivo.\n");
+void cadastrarJogo(Jogo **lista) {
+    Jogo* novoJogo = (Jogo*)malloc(sizeof(Jogo));
+    if (novoJogo == NULL) {
+        printf("Erro ao alocar memória para novo jogo.\n");
         return;
     }
-    jogo a;
+    novoJogo->proximo = *lista;
+
     printf("Informe o id, nome e valor do jogo:\n");
-    scanf("%d %s %f", &a.id, a.nome, &a.valor);
-    fwrite(&a, sizeof(jogo), 1, file);
-    fclose(file);
-    system("pause");
-    system("cls");
+    scanf("%d %s %f", &novoJogo->id, novoJogo->nome, &novoJogo->valor);
+
+    *lista = novoJogo;
+
+    printf("Jogo cadastrado com sucesso.\n");
 }
 
-void buscarJogo(int id) {
-    FILE* file = fopen("jogo.b", "rb");
-    if (file == NULL) {
-        printf("Erro ao abrir o arquivo.\n");
-        return;
-    }
-    jogo a;
-    int entrou = 0;
-    while (fread(&a, sizeof(jogo), 1, file)) {
-        if (a.id == id) {
-            printf("%d: %s %.2f\n", a.id, a.nome, a.valor);
-            entrou = 1;
+void buscarJogo(Jogo *lista, int id) {
+    Jogo* atual = lista;
+    while (atual != NULL) {
+        if (atual->id == id) {
+            printf("%d: %s %.2f\n", atual->id, atual->nome, atual->valor);
+            return;
         }
+        atual = atual->proximo;
     }
-    if (entrou == 0) {
-        printf("Jogo não encontrado\n");
-    }
-    fclose(file);
-    system("pause");
-    system("cls");
+    printf("Jogo não encontrado\n");
 }
 
-
-void listarJogos() {
-    FILE* file = fopen("jogo.b", "rb");
-    if (file == NULL) {
-        printf("Erro ao abrir o arquivo.\n");
-        return;
+void listarJogos(Jogo *lista) {
+    Jogo* atual = lista;
+    while (atual != NULL) {
+        printf("%d %s %.2f\n", atual->id, atual->nome, atual->valor);
+        atual = atual->proximo;
     }
-    jogo a;
-    while (fread(&a, sizeof(jogo), 1, file)) {
-        printf("%d %s %.2f\n", a.id, a.nome, a.valor);
-    }
-    fclose(file);
-    system("pause");
-    system("cls");
 }
 
-int tamanhoJogos() {
-    FILE* file = fopen("jogo.b", "rb");
-    if (file == NULL) {
-        printf("Arquivo não encontrado.\n");
-        return 0;
-    }
-    jogo a;
-    int cont = 0;
-    while (fread(&a, sizeof(jogo), 1, file)) {
-        cont++;
-    }
-    fclose(file);
-    return cont;
-}
+void excluirJogo(Jogo **lista, int id) {
+    Jogo* atual = *lista;
+    Jogo* anterior = NULL;
 
-void excluirJogo(int id) {
-    int n = tamanhoJogos();
-    if (n == 0) {
-        printf("Nenhum jogo cadastrado.\n");
-        return;
-    }
-   jogo *v = (jogo*)malloc(n * sizeof(jogo));
-    if (v == NULL) {
-        printf("Erro de alocação de memória.\n");
-        return;
-    }
-    FILE* file = fopen("jogo.b", "rb");
-    if (file == NULL) {
-        printf("Erro ao abrir o arquivo.\n");
-        free(v);
-        return;
-    }
-    int i = 0;
-    while (fread(&v[i], sizeof(jogo), 1, file)) {
-        i++;
-    }
-    fclose(file);
-
-    file = fopen("jogo.b", "wb");
-    if (file == NULL) {
-        printf("Erro ao abrir o arquivo.\n");
-        free(v);
-        return;
-    }
-    for (i = 0; i < n; i++) {
-        if (v[i].id != id) {
-            fwrite(&v[i], sizeof(jogo), 1, file);
+    while (atual != NULL) {
+        if (atual->id == id) {
+            if (anterior == NULL) {
+                *lista = atual->proximo;
+            } else {
+                anterior->proximo = atual->proximo;
+            }
+            free(atual);
+            printf("Jogo removido com sucesso.\n");
+            return;
         }
+        anterior = atual;
+        atual = atual->proximo;
     }
-    fclose(file);
-    free(v);
-    system("pause");
-    system("cls");
+
+    printf("Jogo não encontrado\n");
 }
 
-void editarJogo(int id) {
-    FILE *file = fopen("jogo.b", "rb+");
-    if (file == NULL) {
-        printf("Erro ao abrir o arquivo.\n");
-        return;
-    }
-
-    jogo temp;
-    int encontrado = 0;
-    long posicao;
-    while (fread(&temp, sizeof(jogo), 1, file)) {
-        if (temp.id == id) {
+void editarJogo(Jogo *lista, int id) {
+    Jogo* atual = lista;
+    while (atual != NULL) {
+        if (atual->id == id) {
             float novo_preco;
             printf("Informe o novo preço: ");
             scanf("%f", &novo_preco);
-            temp.valor = novo_preco;
-
-            posicao = ftell(file);
-            fseek(file, posicao - sizeof(jogo), SEEK_SET);
-            fwrite(&temp, sizeof(jogo), 1, file);
-
-            encontrado = 1;
-            break;
+            atual->valor = novo_preco;
+            printf("Preço do jogo atualizado com sucesso.\n");
+            return;
         }
+        atual = atual->proximo;
     }
-
-    fclose(file);
-    system("pause");
-    system("cls");
-
-    if (!encontrado) {
-        printf("Jogo com ID %d não encontrado.\n", id);
-    }
+    printf("Jogo não encontrado\n");
 }
 
-void aplicarPromocao() {
-    FILE *file = fopen("jogo.b", "rb+");
-    if (file == NULL) {
-        printf("Erro ao abrir o arquivo.\n");
-        return;
-    }
-
-    jogo temp;
-    long posicao;
-    int encontrou = 0;
-
-    while (fread(&temp, sizeof(jogo), 1, file)) {
-        if (temp.valor <= 50.0) {
-            encontrou = 1; 
-            float novo_valor = temp.valor * 0.9; 
-            temp.valor = novo_valor;
-
-            posicao = ftell(file);
-            fseek(file, posicao - sizeof(jogo), SEEK_SET);
-            fwrite(&temp, sizeof(jogo), 1, file);
+void aplicarPromocao(Jogo *lista) {
+    Jogo* atual = lista;
+    while (atual != NULL) {
+        if (atual->valor <= 50.0) {
+            float novo_valor = atual->valor * 0.9;
+            atual->valor = novo_valor;
         }
+        atual = atual->proximo;
     }
-
-    fclose(file);
-
-    if (encontrou) {
-        printf("Promoção aplicada com sucesso.\n");
-    } else {
-        printf("Não há jogos elegíveis para promoção.\n");
-    }
+    printf("Promoção aplicada com sucesso.\n");
 }
-
 
 void salvarUsuarios(Usuario usuarios[], int user) {
     FILE* file = fopen("usuarios.b", "wb");
@@ -399,7 +311,7 @@ void carregarUsuarios(Usuario usuarios[], int *user) {
         return;
     }
 
-    *user = fread(usuarios, sizeof(Usuario), login, file);
+    *user = fread(usuarios, sizeof(Usuario), 100, file);
 
     fclose(file);
 }
@@ -408,10 +320,10 @@ int verificarEmail(char email[], Usuario usuarios[], int user) {
     int i;
     for (i = 0; i < user; i++) {
         if (strcmp(email, usuarios[i].email) == 0) {
-            return 1; 
+            return 1;
         }
     }
-    return 0; 
+    return 0;
 }
 
 void exibirMensagemBoasVindas() {
